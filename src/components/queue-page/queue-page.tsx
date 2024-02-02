@@ -1,10 +1,65 @@
-import React from "react";
+import React, {useState} from "react";
 import { SolutionLayout } from "../ui/solution-layout/solution-layout";
+import styles from "./queue-page.module.css";
+import {Input} from "../ui/input/input";
+import {Button} from "../ui/button/button";
+import {ElementStates} from "../../types/element-states";
+import {Circle} from "../ui/circle/circle";
 
 export const QueuePage: React.FC = () => {
-  return (
-    <SolutionLayout title="Очередь">
+  const [data, setData] = useState<string>("");
+  const [stack, setStack] = useState<string[]>(["","","","","","",""]);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [submitted, setSubmitted] = useState<boolean>(false);
 
-    </SolutionLayout>
+  function addValue() {
+    stack.push(data)
+    setSubmitted(true)
+  }
+
+  function deleteValue() {
+    stack.shift()
+    setSubmitted(true)
+  }
+
+  function clear() {
+    setData("")
+    setSubmitted(false)
+    setStack([])
+  }
+
+  return (
+      <SolutionLayout title="Очередь">
+        <div className={styles.VContainer}>
+          <div className={styles.HContainerBig}>
+            <div className={styles.HContainer}>
+              <Input maxLength={4} max={4} value={data} onChange={(e) => setData(e.currentTarget.value)}/>
+              <Button text="Добавить" disabled={data === ""} onClick={addValue}/>
+              <Button text="Удалить" disabled={stack.length === 0} onClick={deleteValue}/>
+            </div>
+            <div className={styles.HContainer}>
+              <Button text="Очистить" disabled={stack.length === 0} onClick={clear}/>
+            </div>
+          </div>
+          <div className={styles.HContainer}>
+            {
+                stack !== [] && stack.map((value, index) => {
+                  const head = index === 0 && value !== "" ? "head" : ""
+                  const tail = index === stack.length - 1 && value !== "" ? "tail" : ""
+                  const computeState = () => {
+                    if (index === stack.length - 1) {
+                      return submitted ? ElementStates.Changing : ElementStates.Default
+                    } else {
+                      return ElementStates.Default
+                    }
+                  }
+                  const targetState = computeState();
+
+                  return <Circle key={index} letter={value} head={head} tail={tail} index={index}/>
+                })
+            }
+          </div>
+        </div>
+      </SolutionLayout>
   );
 };

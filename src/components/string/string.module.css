@@ -1,0 +1,14 @@
+.VContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0 auto;
+    max-width: 500px;
+    align-items: center;
+}
+
+.HContainer {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+}
