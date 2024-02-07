@@ -5,16 +5,26 @@ import {RadioInput} from "../ui/radio-input/radio-input";
 import {Button} from "../ui/button/button";
 import {Direction} from "../../types/direction";
 import {Column} from "../ui/column/column";
+import {ElementStates} from "../../types/element-states";
+import {SHORT_DELAY_IN_MS} from "../../constants/delays";
 
+
+type SortType = "Bubble" | "Selection";
+
+type Animation = {
+  i: number;
+  j: number;
+}
 
 export const SortingPage: React.FC = () => {
 
-  const [selection, setSelection] = useState<boolean>(true)
   const [initial, setInitial] = useState<number[]>([])
-  const [direction, setDirection] = useState<Direction | undefined>(undefined)
-  const [columns, setColumns] = useState<number[]>([])
-  const [index, setIndex] = useState<number>(0)
-  const [lastIndex, setLastIndex] = useState<number>(0)
+  const [direction, _setDirection] = useState<Direction | undefined>(undefined)
+  const [columns, setColumns] = useState<number[]>([]);
+  const [animation, setAnimation] = useState<Animation>({i: 0, j: 0});
+  const chooseArrIndex = useRef<number>(0);
+  const [sortType, setSortType] = useState<SortType>("Selection");
+  const arr = useRef<number[]>([])
 
   function randomArr() {
     let arr: number[] = []
@@ -32,84 +42,110 @@ export const SortingPage: React.FC = () => {
 
   }
 
-  function selectionSort(arr: number[], direction: Direction): number[] {
-    const n = arr.length;
-
-    for (let i = 0; i < n - 1; i++) {
-      let index = i;
-
-      for (let j = i + 1; j < n; j++) {
-        switch (direction) {
-          case Direction.Ascending:
-            if (arr[j] < arr[index]) {
-              index = j;
-            }
-            break;
-          case Direction.Descending:
-            if (arr[j] > arr[index]) {
-              index = j;
-            }
-            break;
-
-        }
-      }
-
-      const temp = arr[index];
-      arr[index] = arr[i];
-      arr[i] = temp;
-    }
-    return arr;
-  }
-
-  function bubbleSort(arr: number[], direction: Direction): number[] {
-    for (let i = 0; i < arr.length; i++) {
-      for (let j = 0; j < arr.length - 1; j++) {
-        switch (direction) {
-          case Direction.Ascending:
-            if (arr[j] > arr[j + 1]) {
-              let temp = arr[j];
-              arr[j] = arr[j + 1];
-              arr[j + 1] = temp;
-            }
-            break;
-          case Direction.Descending:
-            if (arr[j] < arr[j + 1]) {
-              let temp = arr[j];
-              arr[j] = arr[j + 1];
-              arr[j + 1] = temp;
-            }
-            break;
-        }
-      }
-    }
-    return arr
-  }
-
   useEffect(() => {
-    if (direction !== undefined) {
-        sorting(columns, selection, direction);
-        setDirection(undefined)
+    if (direction === undefined)
+      return;
+    if (sortType === "Bubble") {
+      setTimeout(() => {
+        animateBubbleSortStep();
+      }, SHORT_DELAY_IN_MS)
+    } else {
+      setTimeout(() => {
+        animateSelectionSortStep();
+      }, SHORT_DELAY_IN_MS)
     }
-  }, [direction, selection, columns]);
+  }, [direction, animation]);
 
-  function sorting(arr: number[], type: boolean, direction: Direction){
-    let array = []
-
-    switch (type) {
-      case true:
-        array = selectionSort(arr, direction);
-        break;
-      case false:
-        array = bubbleSort(arr, direction);
-        break;
+  const animateBubbleSortStep = () => {
+    let i = animation.i;
+    let j = animation.j;
+    if (j < i - 1) {
+      switch (direction) {
+        case Direction.Ascending:
+          if (arr.current[j] > arr.current[j + 1]) {
+            let temp = arr.current[j];
+            arr.current[j] = arr.current[j + 1];
+            arr.current[j + 1] = temp;
+          }
+          break;
+        case Direction.Descending:
+          if (arr.current[j] < arr.current[j + 1]) {
+            let temp = arr.current[j];
+            arr.current[j] = arr.current[j + 1];
+            arr.current[j + 1] = temp;
+          }
+          break;
+      }
+      ++j;
+    } else if (i >= 0) {
+      --i;
+      j = 0;
+    } else {
+      _setDirection(undefined);
     }
-
-    return array;
+    setAnimation({i, j})
+    setColumns(arr.current)
   }
 
-  function chooseSortingType(type: boolean) {
+  const animateSelectionSortStep = () => {
+    let i = animation.i;
+    let j = animation.j;
+    if (j < columns.length) {
+      switch (direction) {
+        case Direction.Ascending:
+          if (arr.current[j] < arr.current[chooseArrIndex.current]) {
+            chooseArrIndex.current = j;
+          }
+          break;
+        case Direction.Descending:
+          if (arr.current[j] > arr.current[chooseArrIndex.current]) {
+            chooseArrIndex.current = j;
+          }
+          break;
+      }
+      ++j;
+    } else if (i < columns.length - 1) {
+      const temp = arr.current[i];
+      arr.current[i] = arr.current[chooseArrIndex.current];
+      arr.current[chooseArrIndex.current] = temp;
+      ++i;
+      j = i + 1;
+      chooseArrIndex.current = i;
+    } else {
+      _setDirection(undefined);
+    }
+    setAnimation({i, j})
+    setColumns(arr.current)
+  }
+
+  const isLoader = (directionType: Direction) => {
+    return direction  === directionType;
+  }
+
+  const isDisabled = (directionType: Direction) => {
+    return direction === directionType;
+  }
+
+  const setDirection = (direction: Direction | undefined) => {
+    arr.current = columns;
+    _setDirection(direction);
+    if (sortType === "Bubble") {
+      setAnimation({
+        i: arr.current.length,
+        j: 0
+      })
+    } else {
+      setAnimation({
+        i: 0,
+        j: 1
+      });
+      chooseArrIndex.current = 0;
+    }
+  }
+
+  function chooseSortingType(type: SortType) {
     setColumns([...initial])
-    setSelection(type)
+    setSortType(type)
     setDirection(undefined)
   }
 
@@ -118,26 +154,49 @@ export const SortingPage: React.FC = () => {
     setColumns(arr);
   }
 
+  const computeState = (index: number) => {
+    if (direction === undefined)
+      return ElementStates.Default;
+
+    if (sortType === "Bubble") {
+      if (index >= animation.i) {
+        return ElementStates.Modified;
+      }
+      if (index === animation.j || index === animation.j + 1) {
+        return ElementStates.Changing;
+      }
+      return ElementStates.Default;
+    } else {
+      if (index < animation.i || animation.i === arr.current.length - 1) {
+        return ElementStates.Modified;
+      }
+      if (index === animation.i || index === animation.j) {
+        return ElementStates.Changing;
+      }
+      return ElementStates.Default;
+    }
+  }
+
   return (
     <SolutionLayout title="Сортировка массива">
       <div className={styles.VContainer}>
         <div className={styles.HContainerBig}>
           <div className={styles.HContainer}>
-            <RadioInput label="Выбор" checked={selection} onChange={() => chooseSortingType(true)}/>
-            <RadioInput label="Пузырек" checked={!selection} onChange={() => chooseSortingType(false)}/>
+            <RadioInput label="Выбор" checked={sortType === "Selection"} onChange={() => chooseSortingType("Selection")} disabled={direction !== undefined}/>
+            <RadioInput label="Пузырек" checked={sortType === "Bubble"} onChange={() => chooseSortingType("Bubble")} disabled={direction !== undefined}/>
           </div>
           <div className={styles.HContainer}>
-            <Button text="По возрастанию" sorting={Direction.Ascending} onClick={() => setDirection(Direction.Ascending)}/>
-            <Button text="По убыванию" sorting={Direction.Descending} onClick={() => setDirection(Direction.Descending)}/>
+            <Button text="По возрастанию" sorting={Direction.Ascending} onClick={() => setDirection(Direction.Ascending)} isLoader={isLoader(Direction.Ascending)} disabled={isDisabled(Direction.Descending)} extraClass={styles.btn}/>
+            <Button text="По убыванию" sorting={Direction.Descending} onClick={() => setDirection(Direction.Descending)} isLoader={isLoader(Direction.Descending)} disabled={isDisabled(Direction.Ascending)} extraClass={styles.btn}/>
           </div>
           <div className={styles.HContainer}>
-            <Button text="Новый массив" onClick={() => newArray(randomArr())}/>
+            <Button text="Новый массив" onClick={() => newArray(randomArr())} disabled={direction !== undefined} extraClass={styles.btnSubmit}/>
           </div>
         </div>
-        <div className={styles.HContainer}>
+        <div className={styles.Result}>
           {
               columns.map((value, index) => {
-                return <Column index={value} key={index}/>
+                return <Column index={value} key={index} state={computeState(index)}/>
               })
           }
         </div>

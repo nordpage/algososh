@@ -41,8 +41,8 @@ export const FibonacciPage: React.FC = () => {
       <SolutionLayout title="Последовательность Фибоначчи">
         <div className={styles.VContainer}>
           <div className={styles.HContainer}>
-            <Input max={19} onChange={(e) => setValue(Number(e.currentTarget.value))}/>
-            <Button text="Рассчитать" disabled={value === 0} onClick={onFibonacci}/>
+            <Input max={19} onChange={(e) => setValue(Number(e.currentTarget.value))} extraClass={styles.input}/>
+            <Button text="Рассчитать" disabled={value === 0} onClick={onFibonacci} extraClass={styles.btn} isLoader={submitted}/>
           </div>
           <div className={styles.Grid}>
               {

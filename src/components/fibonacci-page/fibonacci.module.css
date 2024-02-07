@@ -18,3 +18,11 @@
     gap: 32px 16px;
     grid-template-columns: repeat(10, 80px);
 }
+
+.input {
+    width: 377px;
+}
+
+.btn {
+    width: 178px;
+}

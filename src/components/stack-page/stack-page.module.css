@@ -10,14 +10,23 @@
 .HContainerBig {
     display: flex;
     flex-direction: row;
-    gap: 64px;
+    gap: 80px;
     align-items: center;
 }
 
 .HContainer {
     display: flex;
     flex-direction: row;
-    gap: 16px;
+    gap: 12px;
     align-items: flex-end;
     min-height: 100px;
+}
+
+
+.input {
+    width: 377px;
+}
+
+.btn {
+    width: 121px;
 }

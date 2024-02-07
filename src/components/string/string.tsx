@@ -50,8 +50,8 @@ export const StringComponent: React.FC = () => {
     <SolutionLayout title="Строка">
         <div className={styles.VContainer}>
             <div className={styles.HContainer}>
-                <Input maxLength={11} onChange={(e) => setValue(e.currentTarget.value)}/>
-                <Button text="Развернуть" disabled={value === ""} onClick={onReverse}/>
+                <Input maxLength={11} onChange={(e) => setValue(e.currentTarget.value)} extraClass={styles.input}/>
+                <Button text="Развернуть" disabled={value === ""} onClick={onReverse} extraClass={styles.btn}/>
             </div>
             <div className={styles.HContainer}>
                 {
