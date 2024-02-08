@@ -8,26 +8,17 @@ import {Column} from "../ui/column/column";
 import {ElementStates} from "../../types/element-states";
 import {SHORT_DELAY_IN_MS} from "../../constants/delays";
 import {Animator} from "../common/animator";
-import LinkedList from "../../classes/LinkedList";
-import {IData} from "../list-page/list-page";
 import {SelectionSortAnimator} from "./animators/SelectionSortAnimator";
 import {BubbleSortAnimator} from "./animators/BubbleSortAnimator";
 
 
 type SortType = "Bubble" | "Selection";
 
-type Animation = {
-  i: number;
-  j: number;
-}
-
 export const SortingPage: React.FC = () => {
 
   const [initial, setInitial] = useState<number[]>([])
   const [direction, _setDirection] = useState<Direction | undefined>(undefined)
   const [columns, setColumns] = useState<number[]>([]);
-  const [animation, setAnimation] = useState<Animation>({i: 0, j: 0});
-  const chooseArrIndex = useRef<number>(0);
   const [sortType, setSortType] = useState<SortType>("Selection");
   const arr = useRef<number[]>([])
   const [animating, setAnimating] = useState<boolean>(false);
@@ -64,68 +55,6 @@ export const SortingPage: React.FC = () => {
     handle = window.setTimeout(animate, SHORT_DELAY_IN_MS);
     return () => window.clearTimeout(handle);
   }, [animating]);
-
-  const animateBubbleSortStep = () => {
-    let i = animation.i;
-    let j = animation.j;
-    if (j < i - 1) {
-      switch (direction) {
-        case Direction.Ascending:
-          if (arr.current[j] > arr.current[j + 1]) {
-            let temp = arr.current[j];
-            arr.current[j] = arr.current[j + 1];
-            arr.current[j + 1] = temp;
-          }
-          break;
-        case Direction.Descending:
-          if (arr.current[j] < arr.current[j + 1]) {
-            let temp = arr.current[j];
-            arr.current[j] = arr.current[j + 1];
-            arr.current[j + 1] = temp;
-          }
-          break;
-      }
-      ++j;
-    } else if (i >= 0) {
-      --i;
-      j = 0;
-    } else {
-      _setDirection(undefined);
-    }
-    setAnimation({i, j})
-    setColumns(arr.current)
-  }
-
-  const animateSelectionSortStep = () => {
-    let i = animation.i;
-    let j = animation.j;
-    if (j < columns.length) {
-      switch (direction) {
-        case Direction.Ascending:
-          if (arr.current[j] < arr.current[chooseArrIndex.current]) {
-            chooseArrIndex.current = j;
-          }
-          break;
-        case Direction.Descending:
-          if (arr.current[j] > arr.current[chooseArrIndex.current]) {
-            chooseArrIndex.current = j;
-          }
-          break;
-      }
-      ++j;
-    } else if (i < columns.length - 1) {
-      const temp = arr.current[i];
-      arr.current[i] = arr.current[chooseArrIndex.current];
-      arr.current[chooseArrIndex.current] = temp;
-      ++i;
-      j = i + 1;
-      chooseArrIndex.current = i;
-    } else {
-      _setDirection(undefined);
-    }
-    setAnimation({i, j})
-    setColumns(arr.current)
-  }
 
   const isLoader = (directionType: Direction) => {
     return direction  === directionType;
