@@ -3,18 +3,23 @@ import {SolutionLayout} from "../ui/solution-layout/solution-layout";
 import styles from "./list-page.module.css"
 import {Input} from "../ui/input/input";
 import {Button} from "../ui/button/button";
-import LinkedList, {LinkedNode} from "../../classes/LinkedList";
+import LinkedList from "../../classes/LinkedList";
 import {Circle} from "../ui/circle/circle";
 import {ArrowIcon} from "../ui/icons/arrow-icon";
 import {ElementStates} from "../../types/element-states";
-import {DELAY_IN_MS} from "../../constants/delays";
+import { SHORT_DELAY_IN_MS} from "../../constants/delays";
+import {Animator} from "../common/animator";
+import {AnimateInsertStepAnimator} from "./animators/AnimateInsertStepAnimator";
+import {AnimateRemoveStepAnimator} from "./animators/AnimateRemoveStepAnimator";
+import {AnimateAddToTailStepAnimator} from "./animators/AnimateAddToTailStepAnimator";
+import {AnimateRemoveTailStepAnimator} from "./animators/AnimateRemoveTailStepAnimator";
 
 type Action = "None" | "AddToHead" | "AddToTail" | "RemoveFromHead" | "RemoveFromTail" | "AddByIndex" | "RemoveByIndex"
 
-type ElementStatus = "Default" | "Changing" | "Updated" | "Prepare"
+export type ElementStatus = "Default" | "Changing" | "Updated" | "Prepare"
 
 
-interface IData {
+export interface IData {
   value: string | undefined,
   future: string | undefined,
   status: ElementStatus
@@ -23,152 +28,32 @@ interface IData {
 export const ListPage: React.FC = () => {
 
   const linkedList = useRef<LinkedList<IData>>(new LinkedList<IData>());
+  const animator = useRef<Animator<LinkedList<IData>, IData>>();
   const [displayList, setDisplayList] = useState<IData[]>(linkedList.current.toArray());
   const [listAction, setListAction] = useState<Action>("None");
   const [inputData, setInputData] = useState<string>("")
   const [inputIndex, setInputIndex] = useState<string>("")
-  const [head, setHead] = useState<LinkedNode<IData> | null>(null);
-  const [tail, setTail] = useState<LinkedNode<IData> | null>(null);
-  const [current, setCurrent] = useState<LinkedNode<IData> | null>(null);
-  const [animation, setAnimation] = useState<LinkedNode<IData> | null>(null);
-  const [animationPush, setAnimationPush] = useState<number>(0);
-  const currentIndex = useRef<number>(0);
+  const [animating, setAnimating] = useState<boolean>(false);
 
-  const clearList = () => {
-    for (const linkedListElement of linkedList.current.toArray()) {
-      linkedListElement.future = undefined;
-      linkedListElement.status = "Default";
-    }
-  }
-  const clear = () => {
-    setListAction("None");
-    clearList();
-    setInputIndex("");
-    setInputData("");
-  }
-
-  const animateInsertStep = () => {
-    if (current === animation) {
-      clear();
-    } else if (animation?.next === current && current!.value.future !== undefined && animation.value.status === "Prepare") {
-      current!.value.value = current?.value.future;
-      current!.value.future = undefined;
-      current!.value.status = "Updated";
-      setAnimation(current);
-    } else if (animation?.next === current && animation.value.status === "Changing") {
-
-      const nodeValue : IData = {value: inputData,
-        future: undefined,
-        status: "Updated"};
-
-      const newNode = currentIndex.current > 0 ? linkedList.current.insertAfter(animation, nodeValue) : linkedList.current.addToTheHead(nodeValue);
-
-      current!.value.future = undefined;
-
-      setAnimation(newNode);
-      setCurrent(newNode);
-    } else {
-      if (animation?.value.status === "Default") {
-        animation.next!.value.future = animation.value.future
-        animation.value.future = undefined
-        animation.value.status = "Changing"
-        setAnimationPush(Math.random())
-      } else {
-        setAnimation(animation!.next)
-      }
-    }
-  }
-
-  const animateAddToTailStep = () => {
-    if (animation !== linkedList.current.tail) {
-      linkedList.current.tail!.value.value = linkedList.current.tail!.value.future;
-      linkedList.current.tail!.value.future = undefined;
-      linkedList.current.tail!.value.status = "Updated";
-      setAnimation(current);
-
-    } else if (linkedList.current.tail?.value.future !== undefined) {
-      linkedList.current.tail.value.future = undefined;
-      linkedList.current.insertAfter(linkedList.current.tail, {
-        value: inputData,
-        status: "Updated",
-        future: undefined
-      });
-      setAnimation(linkedList.current.tail);
-    } else {
-      clear();
-    }
-    setAnimationPush(Math.random());
-  }
-
-  const animateRemoveStep = () => {
-    if (current === animation) {
-      clear();
-    } else if (animation?.next === current && animation.value.status === "Changing" && current?.value.future !== undefined) {
-      if (currentIndex.current > 0) {
-        linkedList.current.deleteNext(animation);
-      } else {
-        linkedList.current.deleteHead();
-      }
-      setCurrent(animation)
-    } else if (animation?.next === current && animation.value.status === "Changing" && current?.value.future === undefined) {
-      current!.value.future = current?.value.value;
-      current!.value.value = undefined;
-      setAnimationPush(Math.random())
-    } else {
-      if (animation?.value.status === "Default") {
-        animation.next!.value.future = animation.value.future
-        animation.value.future = undefined
-        animation.value.status = "Changing"
-        setAnimationPush(Math.random())
-      } else {
-        setAnimation(animation!.next)
-      }
-    }
-  }
-
-  const animateRemoveTailStep = () => {
-    if (animation !== null) {
-      if (animation.value.future === undefined) {
-        animation.value.future = animation.value.value
-        animation.value.value = undefined;
-      } else {
-        if (current !== null) {
-          linkedList.current.deleteNext(current);
-        } else {
-          linkedList.current.deleteHead();
-        }
-        setAnimation(null);
-      }
-      setAnimationPush(Math.random());
-    } else {
-      clear();
-    }
-  }
 
   useEffect(() => {
-    if (listAction === "None") return;
-    setTimeout(() => {
-      switch (listAction) {
-        case "AddByIndex":
-        case "AddToHead":
-          animateInsertStep();
-          break;
-        case "AddToTail":
-          animateAddToTailStep();
-          break;
-        case "RemoveByIndex":
-        case "RemoveFromHead":
-          animateRemoveStep();
-          break;
-        case "RemoveFromTail":
-          animateRemoveTailStep();
-          break;
+    if (!animating) return;
+    let handle: number | undefined;
+    const animate = () => {
+      const result = animator.current!.animateStep();
+      const array: IData[] = [];
+      for (const item of result.result.toArray()) {
+        array.push({...item});
       }
-
-      setDisplayList([...linkedList.current.toArray()])
-    }, DELAY_IN_MS)
-
-  }, [head, tail, current, animation, listAction, animationPush]);
+      setDisplayList(array);
+      if (!result.completed) handle =  window.setTimeout(animate, SHORT_DELAY_IN_MS); else {
+        setAnimating(false);
+        setListAction("None")
+      }
+    }
+     handle = window.setTimeout(animate, SHORT_DELAY_IN_MS);
+    return () => window.clearTimeout(handle);
+  }, [animating]);
 
   const isLoader = (action: string) => {
     return listAction === action;
@@ -180,124 +65,63 @@ export const ListPage: React.FC = () => {
 
   const addToTheHead = () => {
     setListAction("AddToHead");
-    currentIndex.current = 0;
-    insert(0);
+    animator.current = AnimateInsertStepAnimator.create(linkedList.current,  0, inputData, "AddToHead");
+    setAnimating(true);
   }
-
-
 
   const addToTheTail = () => {
     setListAction("AddToTail");
     if (linkedList.current.length === 0) {
-      insertFirstNode();
+      animator.current = AnimateInsertStepAnimator.create(linkedList.current,  0, inputData, "AddToHead");
     } else {
-      linkedList.current.tail!.value.future = inputData;
-      setAnimation(linkedList.current.tail)
+      animator.current = new AnimateAddToTailStepAnimator(linkedList.current, inputData);
     }
-    setDisplayList(linkedList.current.toArray());
+    setAnimating(true);
   }
 
   const removeElementFromHead = () => {
     setListAction("RemoveFromHead");
-    currentIndex.current = 0;
-    setCurrent(linkedList.current.head);
-    const fakeNode = new LinkedNode<IData>({
-      value: "fake",
-      status: "Default",
-      future: undefined
-    });
-    fakeNode.next = linkedList.current.head;
-
-    setAnimation(fakeNode);
-
+    animator.current = AnimateRemoveStepAnimator.create(linkedList.current, Number(inputIndex), "RemoveFromHead");
+    setAnimating(true);
+    if (animator.current) {
+      setAnimating(true);
+    }
   }
 
   const removeElementFromTail = () => {
-    currentIndex.current = linkedList.current.length - 1;
-    const current = linkedList.current.getNodeByPosition(currentIndex.current - 1);
-    const animation = current?.next ?? linkedList.current.getNodeByPosition(currentIndex.current);
-    setCurrent(current);
-    setAnimation(animation);
+    if (linkedList.current.length === 0) {
+      alert("Список уже пуст!");
+      return;
+    }
+    animator.current = new AnimateRemoveTailStepAnimator(linkedList.current);
+    setAnimating(true);
     setListAction("RemoveFromTail");
   }
 
-  const insert = (currentIndex:number) => {
-    clearList();
-    if (linkedList.current.length === 0) {
-      insertFirstNode();
-    } else {
-      const createHead = () => {
-        if (currentIndex > 0) return linkedList.current.head;
-        const fakeHead = new LinkedNode<IData>({value: "fake", status: "Default", future: undefined});
-        fakeHead.next = linkedList.current.head;
-        return fakeHead;
-      }
-      const head = createHead();
-
-      setHead(head)
-      setCurrent(linkedList.current.getNodeByPosition(currentIndex))
-      setAnimation(head)
-      head!.value.future =  inputData;
-    }
-
-    setDisplayList(linkedList.current.toArray())
-  }
-
-  const insertFirstNode = () => {
-    const node = linkedList.current.addToTheHead({
-      value: undefined,
-      status: "Default",
-      future: inputData
-    });
-    const fakeNode = new LinkedNode<IData>({
-      value: "fake",
-      status: "Prepare",
-      future: undefined
-    });
-    fakeNode.next = node;
-    setHead(node);
-    setCurrent(node);
-    setAnimation(fakeNode);
-  }
-
   const insertInPosition = () => {
-   currentIndex.current = Number(inputIndex)
-    if (currentIndex.current < 0 || currentIndex.current >= linkedList.current.length) {
-      alert("Недопустимый index");
-      return;
+    animator.current = AnimateInsertStepAnimator.create(linkedList.current,  Number(inputIndex), inputData, "AddByIndex");
+    if (animator.current) {
+      setAnimating(true);
+      setListAction("AddByIndex");
+    } else {
+      alert("Недопустимый index")
     }
-
-
-    setListAction("AddByIndex");
-    insert(currentIndex.current);
   }
 
   const removeFromPosition = () => {
-    currentIndex.current = Number(inputIndex)
-    if (currentIndex.current < 0 || currentIndex.current >= linkedList.current.length) {
-      alert("Недопустимый index");
-      return;
+    animator.current = AnimateRemoveStepAnimator.create(linkedList.current, Number(inputIndex), "RemoveByIndex");
+    if (animator.current) {
+      setAnimating(true);
+      setListAction("RemoveByIndex");
+    } else {
+      alert("Недопустимый index")
     }
-    setCurrent(linkedList.current.getNodeByPosition(currentIndex.current))
-    if (currentIndex.current > 0)
-    setAnimation(linkedList.current.head);
-    else {
-      const fakeNode = new LinkedNode<IData>({
-        value: "fake",
-        status: "Default",
-        future: undefined
-      });
-      fakeNode.next = linkedList.current.head;
-      setAnimation(fakeNode);
-    }
-    setListAction("RemoveByIndex");
   }
 
   const getDisplayState = (data: IData) => {
-    if (listAction === "None") return ElementStates.Default
-    if (data.status === "Changing") return ElementStates.Changing
-    if (data.status === "Updated") return ElementStates.Modified
-    return ElementStates.Default
+    if (listAction === "None" || !animator.current) return ElementStates.Default
+
+    return animator.current.getStatus(0, data);
   }
 
   return (

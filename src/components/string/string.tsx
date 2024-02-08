@@ -42,7 +42,7 @@ export const StringComponent: React.FC = () => {
     function onReverse() {
         setSubmitted(true)
         setNewValue(value.split(""))
-        setIndex(0); //reverseStr(value)
+        setIndex(0);
     }
 
 
