@@ -7,6 +7,11 @@ import {Direction} from "../../types/direction";
 import {Column} from "../ui/column/column";
 import {ElementStates} from "../../types/element-states";
 import {SHORT_DELAY_IN_MS} from "../../constants/delays";
+import {Animator} from "../common/animator";
+import LinkedList from "../../classes/LinkedList";
+import {IData} from "../list-page/list-page";
+import {SelectionSortAnimator} from "./animators/SelectionSortAnimator";
+import {BubbleSortAnimator} from "./animators/BubbleSortAnimator";
 
 
 type SortType = "Bubble" | "Selection";
@@ -25,6 +30,9 @@ export const SortingPage: React.FC = () => {
   const chooseArrIndex = useRef<number>(0);
   const [sortType, setSortType] = useState<SortType>("Selection");
   const arr = useRef<number[]>([])
+  const [animating, setAnimating] = useState<boolean>(false);
+  const animator = useRef<Animator<number[], number>>();
+
 
   function randomArr() {
     let arr: number[] = []
@@ -43,18 +51,19 @@ export const SortingPage: React.FC = () => {
   }
 
   useEffect(() => {
-    if (direction === undefined)
-      return;
-    if (sortType === "Bubble") {
-      setTimeout(() => {
-        animateBubbleSortStep();
-      }, SHORT_DELAY_IN_MS)
-    } else {
-      setTimeout(() => {
-        animateSelectionSortStep();
-      }, SHORT_DELAY_IN_MS)
+    if (!animating) return;
+    let handle: number | undefined;
+    const animate = () => {
+      const result = animator.current!.animateStep();
+      setColumns([...result.result])
+      if (!result.completed) handle =  window.setTimeout(animate, SHORT_DELAY_IN_MS); else {
+        setAnimating(false);
+        _setDirection(undefined)
+      }
     }
-  }, [direction, animation]);
+    handle = window.setTimeout(animate, SHORT_DELAY_IN_MS);
+    return () => window.clearTimeout(handle);
+  }, [animating]);
 
   const animateBubbleSortStep = () => {
     let i = animation.i;
@@ -129,18 +138,13 @@ export const SortingPage: React.FC = () => {
   const setDirection = (direction: Direction | undefined) => {
     arr.current = columns;
     _setDirection(direction);
+    if (direction === undefined) return;
     if (sortType === "Bubble") {
-      setAnimation({
-        i: arr.current.length,
-        j: 0
-      })
+      animator.current = new BubbleSortAnimator(arr.current, direction);
     } else {
-      setAnimation({
-        i: 0,
-        j: 1
-      });
-      chooseArrIndex.current = 0;
+      animator.current = new SelectionSortAnimator(arr.current, direction);
     }
+    setAnimating(true);
   }
 
   function chooseSortingType(type: SortType) {
@@ -155,26 +159,9 @@ export const SortingPage: React.FC = () => {
   }
 
   const computeState = (index: number) => {
-    if (direction === undefined)
+    if (direction === undefined || !animator.current)
       return ElementStates.Default;
-
-    if (sortType === "Bubble") {
-      if (index >= animation.i) {
-        return ElementStates.Modified;
-      }
-      if (index === animation.j || index === animation.j + 1) {
-        return ElementStates.Changing;
-      }
-      return ElementStates.Default;
-    } else {
-      if (index < animation.i || animation.i === arr.current.length - 1) {
-        return ElementStates.Modified;
-      }
-      if (index === animation.i || index === animation.j) {
-        return ElementStates.Changing;
-      }
-      return ElementStates.Default;
-    }
+    return animator.current!.getStatus(index, 0);
   }
 
   return (
