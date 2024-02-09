@@ -1,56 +1,57 @@
-export interface IQueue<T> {
-    item: T| null
-}
-
 class Queue<T> {
+    private head: number | null = null;
+    private tail: number | null = null;
+
     length = 0
-    items: IQueue<T>[] = []
+    items: (T | null)[] = []
     constructor(length: number) {
         this.length = length
-        this.items = Array(length).fill({item: null});
+        this.items = Array(length).fill(null);
     }
 
     enqueue(data: T) {
-        if (this.items.find(queue => queue !== null)) {
-            const filledArray = this.items
-            for (let i = filledArray.length -1; i > 0 ; --i) {
-
-                this.items[i] = filledArray[i-1];
+        if (this.tail === null) {
+            this.items[0] = data;
+            this.tail = 0;
+            this.head = 0;
+        } else {
+            if (this.tail === this.length - 1) {
+                throw new Error("Очередь уже заполнена");
             }
+            ++this.tail;
+            this.items[this.tail] = data;
         }
-        const newQueue = {item: data}
-        this.items[0] = newQueue!!;
     }
 
     dequeue() {
-        const item =  this.items[this.getFilledList().length -1];
-        const index = this.items.indexOf(item);
-        this.items[index].item = null;
-        return this.items;
+        if (this.head === null) {
+            throw new Error("Очередь пуста");
+        }
+        this.items[this.head] = null;
+
+        if (this.head < this.tail!) {
+            this.head++;
+        }
     }
 
     peek() {
-        this.items = Array(this.length).fill(undefined);
+        this.items = Array(this.length).fill(null);
+        this.head = null;
+        this.tail = null;
     }
 
-    size() {
-        return this.items.length;
-    }
 
     isEmpty() {
-        return this.items.filter(queue => queue.item !== null).length === 0;
+        return this.head === null// || this.items[this.head] === null;
     }
 
-    getFilledList() {
-        return this.items.filter(queue => queue !== undefined && queue.item !== null)
+    isHead(index: number) {
+        return this.head === index;
     }
 
-    isHead(queue: IQueue<T>) {
-        return this.items.indexOf(queue) === 0 && queue !== undefined && queue.item !== null
+    isTail(index: number) {
+        return this.tail === index;
     }
 
-    isTail(queue: IQueue<T>) {
-        return this.items.indexOf(queue) === this.getFilledList().length - 1;
-    }
 }
 export default Queue;
