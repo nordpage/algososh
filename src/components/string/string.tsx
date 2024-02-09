@@ -1,48 +1,41 @@
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import {SolutionLayout} from "../ui/solution-layout/solution-layout";
 import {Circle} from "../ui/circle/circle";
 import styles from "./string.module.css"
-import {DELAY_IN_MS} from "../../constants/delays";
+import {SHORT_DELAY_IN_MS} from "../../constants/delays";
 import {Input} from "../ui/input/input";
 import {Button} from "../ui/button/button";
 import {ElementStates} from "../../types/element-states";
+import {Animator} from "../common/animator";
+import {StringAnimator} from "./animators/StringAnimator";
 
 
 export const StringComponent: React.FC = () => {
     const [value, setValue] = useState<string>("");
     const [newValue, setNewValue] = useState<string[]>([]);
-    const [index, setIndex] = useState<number>(0)
     const [submitted, setSubmitted] = useState<boolean>(false)
+    const animator = useRef<Animator<string[], string>>();
 
     useEffect(() => {
-        if (submitted) {
-            setTimeout(() => {
-                let n = newValue.length;
-                let ch = newValue;
-                let temp;
+        if (!submitted) return;
+        let handle: number | undefined;
+        const animate = () => {
+            const result = animator.current!.animateStep();
 
-
-                const middle = Math.floor(n / 2)
-
-                if (index < middle) {
-                    const lastIndex = n - index - 1;
-                    temp = ch[index];
-                    ch[index] = ch[lastIndex];
-                    ch[lastIndex] = temp;
-                    setNewValue(ch);
-                    setIndex(index + 1)
-                } else {
-                    setSubmitted(false)
-                }
-
-            }, DELAY_IN_MS)
+            setNewValue([...result.result]);
+            if (!result.completed) handle =  window.setTimeout(animate, SHORT_DELAY_IN_MS); else {
+                setSubmitted(false);
+            }
         }
-    }, [index, value, submitted]);
+        handle = window.setTimeout(animate, SHORT_DELAY_IN_MS);
+        return () => window.clearTimeout(handle);
+    }, [submitted]);
 
     function onReverse() {
-        setSubmitted(true)
-        setNewValue(value.split(""))
-        setIndex(0);
+        const arr = value.split("");
+        animator.current = new StringAnimator(arr);
+        setNewValue(arr);
+        setSubmitted(true);
     }
 
 
@@ -56,15 +49,8 @@ export const StringComponent: React.FC = () => {
             <div className={styles.HContainer}>
                 {
                     newValue !== [] && newValue.map((value1, i) => {
-                        const computeState = () => {
-                            if (!submitted || i < index || i > newValue.length - index - 1) {
-                                return ElementStates.Modified;
-                            }
 
-                            return (index === i || i === newValue.length - index - 1 ? ElementStates.Changing : ElementStates.Default)
-
-                        }
-                        const targetState = computeState()
+                        const targetState = submitted ? animator.current?.getStatus(i, value) : ElementStates.Modified;
 
                         return <Circle key={i} letter={value1} state={targetState}/>
                     })
