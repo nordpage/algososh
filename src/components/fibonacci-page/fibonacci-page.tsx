@@ -5,35 +5,36 @@ import {Input} from "../ui/input/input";
 import {Button} from "../ui/button/button";
 import {Circle} from "../ui/circle/circle";
 import {SHORT_DELAY_IN_MS} from "../../constants/delays";
+import {Animator} from "../common/animator";
+import {FibonacciAnimator} from "./animators/FibonacciAnimator";
 
 export const FibonacciPage: React.FC = () => {
 
   const [value, setValue] = useState<number>(0);
   const [newValue, setNewValue] = useState<number[]>([]);
-  const [index, setIndex] = useState<number>(0)
-  const [submitted, setSubmitted] = useState<boolean>(false)
+  const [submitted, setSubmitted] = useState<boolean>(false);
+  const animator = useRef<Animator<number[], number>>();
+
     const ref = useRef<number[]>([1,1])
     useEffect(() => {
-        if (submitted) {
-            setTimeout(() => {
-                const result = ref.current;
-                if (index <= value) {
-                    result[index] = result[index - 1] + result[index - 2];
-                    setNewValue(result)
-                    ref.current = result;
-                    setIndex(index + 1);
-                } else {
-                    setSubmitted(false)
-                }
+        if (!submitted) return;
+        let handle: number | undefined;
+        const animate = () => {
+            const result = animator.current!.animateStep();
 
-            }, SHORT_DELAY_IN_MS)
+            setNewValue([...result.result]);
+            if (!result.completed) handle =  window.setTimeout(animate, SHORT_DELAY_IN_MS); else {
+                setSubmitted(false);
+            }
         }
-    }, [value, submitted, index]);
+        handle = window.setTimeout(animate, SHORT_DELAY_IN_MS);
+        return () => window.clearTimeout(handle);
+    }, [submitted]);
 
 
   function onFibonacci() {
+      animator.current = new FibonacciAnimator(value+1);
       setSubmitted(true)
-      setIndex(2)
   }
 
 
