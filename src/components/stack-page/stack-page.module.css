@@ -1,0 +1,32 @@
+.VContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    margin: 0 auto;
+    max-width: 1000px;
+    align-items: center;
+}
+
+.HContainerBig {
+    display: flex;
+    flex-direction: row;
+    gap: 80px;
+    align-items: center;
+}
+
+.HContainer {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: flex-end;
+    min-height: 100px;
+}
+
+
+.input {
+    width: 377px;
+}
+
+.btn {
+    width: 121px;
+}

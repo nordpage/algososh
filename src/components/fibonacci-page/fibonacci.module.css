@@ -1,0 +1,28 @@
+.VContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0 auto;
+    max-width: 500px;
+    align-items: center;
+}
+
+.HContainer {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+}
+
+.Grid {
+    display: grid;
+    gap: 32px 16px;
+    grid-template-columns: repeat(10, 80px);
+}
+
+.input {
+    width: 377px;
+}
+
+.btn {
+    width: 178px;
+}
